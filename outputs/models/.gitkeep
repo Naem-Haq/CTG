@@ -1,0 +1,4 @@
+# Placeholder for trained models
+# Models will be saved here after training:
+# - random_forest.pkl (Block E)
+# - cnn_model.h5 (Block G)
