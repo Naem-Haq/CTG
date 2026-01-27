@@ -1,0 +1,148 @@
+Project title
+Biomedical Signal Processing and Machine Learning to provide decision support to clinicians in the use of CTG.
+Supervisor:  Professor Liam Marnane, email for further information: l.marnane@ucc.ie 
+Research question(s) 
+The INFANT research centre and the School of Engineering is developing AI4Life, a novel AI-based system to monitor the vital signs of mother and baby during labour to quickly identify any issues.
+AI4LIFE is a decision support tool to optimise the use of Cardiotocography (CTG) for monitoring fetal wellbeing during labour and childbirth, allowing more informed decisions on interventions and reducing neonatal and maternal morbidity and mortality.
+Cardiotocography (CTG) measures fetal and maternal heart rate and uterine contractions during labour.
+CTG interpretation is a controversial topic with contention mainly focused around the categorisation of heart rate decelerations	
+
+Proposed methods 
+The approach adopted will involved:
+•	Signal preprocessing to identify and remove unwanted artefacts such as movement and maternal heart rate artefacts. 
+•	Develop signal processing features that identify when possible changes which occur in the fetal heart rate.
+•	Train a Machine Learning Classifier to identify these changes.
+•	Develop post processing methods that utilise the output of the classifier to alter clinical staff.
+
+Special requirements e.g. access to laboratory equipment, data or field sites 
+Data from the Physionet CTG database (https://physionet.org/content/ctu-uhb-ctgdb/1.0.0/) and Cork University Maternity Hospital will be used in this project.  
+Expected results
+The algorithms for the analysis and signal processing will be developed in Python.
+
+
+
+
+
+
+
+The goal of this project is to develop a real-time decision support system for clinicians by applying biomedical signal processing and machine learning techniques to Cardiotocography (CTG) data.
+The system will analyse fetal heart rate, maternal heart rate, and uterine contraction signals to automatically identify clinically significant changes that may indicate fetal distress during labour.
+Given the absence of clear, time-localised indicators of adverse events in CTG data, the project will focus on extracting meaningful physiological features, learning patterns associated with abnormal or deteriorating fetal conditions, and presenting interpretable alerts to support timely and informed clinical decision-making.
+Ultimately, this work aims to improve the reliability and consistency of CTG interpretation, reduce unnecessary interventions, and contribute to improved maternal and neonatal outcomes.
+
+
+
+
+
+
+
+
+Step-by-Step Plan (Realistic & Defensible)
+This plan is designed specifically for the “no obvious pointers” problem you mentioned — which is the core difficulty of CTG analysis.
+
+Step 1: Understand the Data and Clinical Labels
+Objective: Know exactly what information you do and do not have.
+Explore the PhysioNet CTU-UHB CTG dataset
+Identify:
+Available signals (FHR, uterine contractions, maternal HR)
+Sampling rate and duration
+Outcome labels (e.g. umbilical artery pH, Apgar score, normal/pathological)
+Accept early that:
+Labels are outcome-based, not time-localised
+You are doing weakly supervised learning
+📌 This justifies your modelling choices in the report.
+
+Step 2: Signal Preprocessing
+Objective: Clean the data so ML isn’t learning artefacts.
+Tasks:
+Remove or correct:
+Signal dropouts
+Spikes and noise
+Maternal heart rate contamination
+Apply:
+Interpolation for short gaps
+Smoothing / median filtering
+Normalisation (per recording)
+Deliverable:
+Cleaned, standardised CTG signals ready for feature extraction
+
+Step 3: Segmentation (Critical Step)
+Objective: Turn long recordings into learnable units.
+Because there are no timestamps for “things going wrong”:
+Segment signals into fixed windows (e.g. 1–5 minutes)
+Assign each segment the global outcome label (normal vs pathological)
+This introduces label noise — and that’s OK.
+Make sure you explicitly state this in your methodology.
+
+Step 4: Feature Engineering (Before Any Neural Networks)
+Objective: Encode clinical and physiological knowledge.
+Extract features such as:
+Baseline heart rate
+Short-term variability
+Long-term variability
+Decelerations
+Depth
+Duration
+Frequency
+Acceleration statistics
+Frequency-domain features
+Power spectral density
+Entropy / complexity measures
+📌 This step makes your work:
+Interpretable
+Clinically meaningful
+Much easier to defend in viva / review
+
+Step 5: First Model — Random Forest (Excellent Choice)
+Objective: Build a strong, explainable baseline.
+Why Random Forest first:
+Handles noisy labels well
+Works with small-to-medium datasets
+Gives feature importance
+Easy to debug
+Tasks:
+Train RF classifier on window-level features
+Evaluate using:
+ROC-AUC
+Sensitivity (very important clinically)
+Specificity
+Analyse:
+Which features drive predictions
+Failure cases
+This step validates whether the signal actually contains predictive information.
+
+Step 6: Post-Processing for Temporal Consistency
+Objective: Avoid noisy, jumpy predictions.
+Since clinicians don’t want flickering alerts:
+Smooth predictions over time
+Use majority voting or moving averages
+Trigger alerts only when risk is sustained
+📌 This bridges ML output → clinical usability.
+
+Step 7: Advanced Model — CNN (Optional but Strong Extension)
+Objective: Learn features directly from raw signals.
+Only do this after the RF works.
+Approach:
+Use 1D CNNs on segmented signals
+Compare:
+CNN vs Random Forest
+Performance vs interpretability
+Highlight trade-offs in the report
+This shows methodological maturity, not “NN for the sake of it”.
+
+Step 8: Real-Time Decision Support Concept
+Objective: Tie everything back to AI4Life.
+Simulate real-time streaming using sliding windows
+Output:
+Risk score
+Alert levels (normal / caution / high risk)
+Emphasise:
+Decision support, not diagnosis
+Human-in-the-loop design
+
+Step 9: Evaluation and Limitations
+Be explicit about:
+Weak labels
+Inter-observer variability in CTG interpretation
+Dataset bias
+Need for prospective clinical validation
