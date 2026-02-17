@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctg"
+version = "0.1.0"
+description = "AI4Life: Cardiotocography decision support utilities"
+requires-python = ">=3.8"
+dependencies = [
+  "numpy",
+  "pandas",
+  "scipy",
+  "wfdb",
+  "scikit-learn",
+  "matplotlib",
+]
+
+[tool.setuptools]
+packages = ["src"]

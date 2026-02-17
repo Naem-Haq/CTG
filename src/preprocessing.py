@@ -1,112 +1,156 @@
-"""
-Block B: Preprocessing Pipeline
-Modular, reusable signal cleaning functions.
-"""
+# src/preprocessing.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Tuple
 
 import numpy as np
-import pandas as pd
-from scipy.interpolate import interp1d
-from scipy.signal import medfilt
-import wfdb
+from scipy.ndimage import gaussian_filter1d
+
+from .utils import interp_nan_with_gap_limit, runs_of_true, fill_nans_for_processing
 
 
-def load_record(record_id, data_dir):
-    """
-    Load raw FHR and UC signals from WFDB format.
-    
-    Args:
-        record_id: Record name (e.g., '1001')
-        data_dir: Path to data directory
-    
-    Returns:
-        fhr: Raw fetal heart rate signal (numpy array)
-        uc: Raw uterine contraction signal (numpy array)
-        metadata: Recording metadata
-    """
-    pass
+@dataclass(frozen=True)
+class PreprocessConfig:
+    fs_default: float = 4.0
+
+    # FHR cleaning
+    fhr_min: float = 80.0
+    fhr_max: float = 240.0
+    fhr_missing_sentinel: float = 0.0
+
+    # UC cleaning
+    uc_min: float = 0.0
+    uc_max: float = 100.0
+
+    # Interp + smoothing
+    max_interp_gap_sec: float = 30.0
+    gauss_sigma_sec: float = 1.5
+
+    # Optional z-scoring
+    zscore_per_record: bool = False
 
 
-def detect_dropouts(signal, threshold=-100):
+def preprocess_fhr(fhr: np.ndarray, fs: float, cfg: PreprocessConfig) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Detect signal dropout periods (marked as negative or missing values).
-    
-    Args:
-        signal: Input signal (numpy array)
-        threshold: Value below which is considered dropout
-    
-    Returns:
-        dropout_mask: Boolean mask of dropout locations
+    FHR preprocessing:
+      1) sentinel/NaN -> NaN
+      2) outliers outside [fhr_min, fhr_max] -> NaN
+      3) interpolate short gaps (<= max_interp_gap_sec)
+      4) Gaussian smoothing
+      5) optional z-score normalization
+    Returns cleaned fhr and qc dict.
     """
-    pass
+    y = np.asarray(fhr, dtype=float).copy()
+    n = len(y)
+
+    # Track original missing sources
+    sentinel_mask = (y == cfg.fhr_missing_sentinel)
+    nan_input_mask = np.isnan(y)
+
+    # Missing -> NaN
+    y[sentinel_mask | nan_input_mask] = np.nan
+
+    # Outliers -> NaN
+    outlier_mask = np.isfinite(y) & ((y < cfg.fhr_min) | (y > cfg.fhr_max))
+    y[outlier_mask] = np.nan
+
+    # Pre-interp QC
+    pre_nan = np.isnan(y)
+    valid_pre = ~pre_nan
+    starts, ends = runs_of_true(pre_nan)
+    pre_max_gap_samples = int(np.max(ends - starts)) if len(starts) else 0
+    pre_max_gap_sec = pre_max_gap_samples / fs if fs else np.nan
+
+    # Interpolate short gaps only
+    max_fill = max(1, int(round(cfg.max_interp_gap_sec * fs)))
+    if np.isfinite(y).sum() >= 2:
+        y = interp_nan_with_gap_limit(y, max_gap_samples=max_fill)
+
+    # Gaussian smoothing (do not destroy NaN gaps)
+    sigma_samp = max(0.0, cfg.gauss_sigma_sec * fs)
+    if sigma_samp > 0:
+        if np.isnan(y).any():
+            y_fill = fill_nans_for_processing(y)
+            y_smooth = gaussian_filter1d(y_fill, sigma=sigma_samp, mode="nearest")
+            y_smooth[np.isnan(y)] = np.nan
+            y = y_smooth
+        else:
+            y = gaussian_filter1d(y, sigma=sigma_samp, mode="nearest")
+
+    # Optional z-score
+    if cfg.zscore_per_record:
+        mu = np.nanmean(y)
+        sd = np.nanstd(y)
+        if np.isfinite(sd) and sd > 0:
+            y = (y - mu) / sd
+        else:
+            y = y * 0.0
+
+    # Post QC
+    post_nan = np.isnan(y)
+    starts2, ends2 = runs_of_true(post_nan)
+    post_max_gap_samples = int(np.max(ends2 - starts2)) if len(starts2) else 0
+    post_max_gap_sec = post_max_gap_samples / fs if fs else np.nan
+
+    qc = {
+        "fs": float(fs),
+        "n": int(n),
+
+        "fhr_sentinel_zero_pct": float(100.0 * sentinel_mask.mean()) if n else np.nan,
+        "fhr_nan_input_pct": float(100.0 * nan_input_mask.mean()) if n else np.nan,
+
+        "fhr_outliers_pct": float(100.0 * outlier_mask.mean()) if n else np.nan,
+        "fhr_missing_pct": float(100.0 * pre_nan.mean()) if n else np.nan,
+        "fhr_valid_pct": float(100.0 * valid_pre.mean()) if n else np.nan,
+        "fhr_max_missing_gap_sec": float(pre_max_gap_sec),
+
+        "fhr_remaining_nan_pct": float(100.0 * post_nan.mean()) if n else np.nan,
+        "fhr_valid_pct_post": float(100.0 * (~post_nan).mean()) if n else np.nan,
+        "fhr_max_missing_gap_sec_post": float(post_max_gap_sec),
+
+        "interp_max_gap_sec": float(cfg.max_interp_gap_sec),
+        "gauss_sigma_sec": float(cfg.gauss_sigma_sec),
+        "zscore_per_record": bool(cfg.zscore_per_record),
+        "fhr_range_bpm": f"[{cfg.fhr_min}, {cfg.fhr_max}]",
+        "interp_filled_pct": float(max(0.0, (pre_nan.mean() - post_nan.mean()) * 100.0)) if n else np.nan,
+    }
+    return y, qc
 
 
-def interpolate_gaps(signal, max_gap_duration=30):
+def preprocess_uc(uc: np.ndarray, fs: float, cfg: PreprocessConfig) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Interpolate short signal gaps (dropouts).
-    
-    Args:
-        signal: Input signal with potential gaps
-        max_gap_duration: Maximum gap duration in seconds to interpolate
-    
-    Returns:
-        signal_interpolated: Signal with gaps filled
+    UC preprocessing:
+      - clamp outliers outside [uc_min, uc_max] -> NaN
+      - Gaussian smoothing
+      - optional z-score
     """
-    pass
+    y = np.asarray(uc, dtype=float).copy()
+    n = len(y)
 
+    outlier_mask = np.isfinite(y) & ((y < cfg.uc_min) | (y > cfg.uc_max))
+    y[outlier_mask] = np.nan
 
-def remove_outliers(signal, bounds=(80, 240), signal_type='fhr'):
-    """
-    Remove physiologically implausible values.
-    
-    Args:
-        signal: Input signal
-        bounds: (min, max) acceptable range
-        signal_type: 'fhr' or 'uc' for appropriate bounds
-    
-    Returns:
-        signal_clipped: Signal with outliers clipped
-    """
-    pass
+    sigma_samp = max(0.0, cfg.gauss_sigma_sec * fs)
+    if sigma_samp > 0:
+        if np.isnan(y).any():
+            y_fill = fill_nans_for_processing(y)
+            y_smooth = gaussian_filter1d(y_fill, sigma=sigma_samp, mode="nearest")
+            y_smooth[np.isnan(y)] = np.nan
+            y = y_smooth
+        else:
+            y = gaussian_filter1d(y, sigma=sigma_samp, mode="nearest")
 
+    if cfg.zscore_per_record:
+        mu = np.nanmean(y)
+        sd = np.nanstd(y)
+        if np.isfinite(sd) and sd > 0:
+            y = (y - mu) / sd
+        else:
+            y = y * 0.0
 
-def smooth_signal(signal, window_size=5):
-    """
-    Apply Gaussian smoothing while preserving variability.
-    
-    Args:
-        signal: Input signal
-        window_size: Smoothing window size
-    
-    Returns:
-        signal_smooth: Smoothed signal
-    """
-    pass
-
-
-def normalize_signal(signal):
-    """
-    Per-recording z-score normalization.
-    
-    Args:
-        signal: Input signal
-    
-    Returns:
-        signal_normalized: Z-score normalized signal
-    """
-    pass
-
-
-def process_record(record_id, data_dir):
-    """
-    Complete preprocessing pipeline: load, clean, normalize.
-    
-    Args:
-        record_id: Record name
-        data_dir: Path to data directory
-    
-    Returns:
-        fhr_clean: Cleaned FHR signal
-        uc_clean: Cleaned UC signal
-        metadata: Recording metadata
-    """
-    pass
+    qc = {
+        "uc_missing_pct": float(100.0 * np.isnan(y).mean()) if n else np.nan,
+        "uc_outliers_pct": float(100.0 * outlier_mask.mean()) if n else np.nan,
+    }
+    return y, qc
