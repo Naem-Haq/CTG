@@ -1,0 +1,84 @@
+{
+  "total_recordings": 552,
+  "signal_inventory": {
+    "Total": 552,
+    "FHR": 552,
+    "UC": 552,
+    "MHR": 0
+  },
+  "duration_minutes": {
+    "mean": 74.16347373188407,
+    "median": 71.70833333333333,
+    "std": 7.558198401663684,
+    "min": 60.0,
+    "max": 90.08333333333333,
+    "total_hours": 682.3039583333334
+  },
+  "class_distribution": {
+    "Normal": 447,
+    "Pathological": 103,
+    "Unknown": 2
+  },
+  "quality": {
+    "criteria": "valid_fhr_pct >= 50.0",
+    "pass": 542,
+    "fail": 10,
+    "mean_fhr_missing_pct": 18.785657498423667,
+    "mean_fhr_outliers_pct": 1.5316768400775698,
+    "mean_uc_missing_pct": 0.0,
+    "mean_uc_outliers_pct": 0.6850403002305463
+  },
+  "read_failures": [],
+  "label_source_counts": {
+    "ph_fallback": 550,
+    "missing": 2
+  },
+  "unknown_record_ids": [
+    "1002",
+    "1017"
+  ],
+  "failed_quality_record_ids": [
+    "1058",
+    "1164",
+    "1173",
+    "1198",
+    "1361",
+    "1431",
+    "2006",
+    "2013",
+    "2025",
+    "2030"
+  ],
+  "labeling": {
+    "primary": "REC TYPE / OUTCOME if present",
+    "fallback": "pH threshold",
+    "ph_threshold_pathological": 7.15
+  },
+  "quality_distributions": {
+    "fhr_missing_pct": {
+      "median": 18.339285714285715,
+      "p25": 8.930059523809524,
+      "p75": 27.041666666666668
+    },
+    "fhr_valid_pct": {
+      "median": 80.01631944444443,
+      "p25": 72.12526041666666,
+      "p75": 89.37085218702866
+    },
+    "fhr_outliers_pct": {
+      "median": 0.7648809523809523,
+      "p25": 0.2142857142857143,
+      "p75": 2.0515252976190474
+    },
+    "uc_missing_pct": {
+      "median": 0.0,
+      "p25": 0.0,
+      "p75": 0.0
+    },
+    "uc_outliers_pct": {
+      "median": 0.0,
+      "p25": 0.0,
+      "p75": 0.4612179487179487
+    }
+  }
+}
