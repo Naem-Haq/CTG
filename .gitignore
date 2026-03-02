@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated Block F artifacts
+outputs/blockF_real_time_alerts.csv
+outputs/models/blockF_alert_summary.json
+
+# Generated model artifacts
+outputs/models/*.joblib
+outputs/models/*_report.json
+outputs/models/*_confusion_matrix.png
+outputs/models/*_feature_importance.png
+outputs/models/*_roc.png
+outputs/models/*_thresholds.png
+outputs/models/rf_3class_thresholds.json
+outputs/models/class_distribution.png
+outputs/models/feature_distributions_by_class.png
