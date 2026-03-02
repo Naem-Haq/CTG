@@ -15,6 +15,11 @@ dependencies = [
   "scikit-learn",
   "matplotlib",
 ]
+authors = [
+    {name = "Naem Haq"}
+]
+readme = "README.md"
+license = {text = "MIT"}
 
 [tool.setuptools]
 packages = ["src"]
