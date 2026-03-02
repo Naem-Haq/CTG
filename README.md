@@ -48,7 +48,8 @@ CTG/
 │   ├── 02-BlockB-Preprocessing.ipynb         # Signal cleaning pipeline
 │   ├── 03-BlockC-Segmentation.ipynb          # Window-based segmentation
 │   ├── 04-BlockD-FeatureEngineering.ipynb    # Clinical feature extraction
-│   ├── 05-BlockE-RandomForest.ipynb          # Baseline RF classifier
+│   ├── 05-BlockE-RandomForest.ipynb          # Primary 3-class RF classifier
+│   ├── 05-BlockE-BinaryBaseline-RandomForest.ipynb  # Binary baseline RF
 │   ├── 06-BlockF-PostProcessing.ipynb        # Alert generation
 │   └── 07-BlockG-CNN.ipynb                   # Advanced CNN model (optional)
 ├── src/
@@ -109,11 +110,11 @@ Extract 50+ clinical features:
 
 **Output:** Feature matrix (N_segments × N_features)
 
-### **Block E: Baseline Model – Random Forest**
+### **Block E: 3-Class Random Forest**
 Train explainable classifier:
-- 100–200 trees, max_depth=10, balanced class weights
-- 70/30 train/test split (stratified)
-- Metrics: ROC-AUC, Sensitivity, Specificity, Confusion Matrix
+- NICE-based 3-class target (Normal, Suspicious, Pathological)
+- Grouped 70/30 train/test split by `record_id` (no leakage)
+- Metrics: class-wise precision/recall/F1, confusion matrix, threshold trade-offs
 - Feature importance ranking
 
 **Output:** Trained RF model, performance report, ROC curve
