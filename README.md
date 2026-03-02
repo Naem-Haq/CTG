@@ -120,9 +120,10 @@ Train explainable classifier:
 
 ### **Block F: Post-Processing & Temporal Smoothing**
 Generate clinician-friendly alerts:
-- Aggregate segment predictions to recording-level risk
-- Apply temporal smoothing (moving average, majority voting)
-- Define risk levels: Normal (0), Caution (1), High Risk (2)
+- Recreate 3-class NICE pseudo-ground-truth labels from feature matrix
+- Evaluate alerts on grouped holdout records (same no-leakage split policy as Block E)
+- Apply causal temporal smoothing (trailing majority vote per record)
+- Report clinical alert metrics (false alerts/hour, transition rate, escalation rate)
 
 **Output:** Real-time alert timeline, visualization
 
@@ -151,7 +152,7 @@ git clone https://github.com/Naem-Haq/CTG.git
 cd CTG
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Download dataset
 # Visit: https://physionet.org/content/ctu-chb-intrapartum-cardiotocography-database-1.0.0/
