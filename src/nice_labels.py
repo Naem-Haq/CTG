@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 
-def classify_contractions(uc_peak_rate_per_min: float) -> str:
+def classify_contractions(uc_peak_rate_per_min: float | None) -> str:
     """
     NICE-inspired UC classification using contraction rate per 10 minutes.
 
@@ -18,7 +18,7 @@ def classify_contractions(uc_peak_rate_per_min: float) -> str:
     return "Suspicious"
 
 
-def classify_baseline_fhr(fhr_baseline_median: float) -> str:
+def classify_baseline_fhr(fhr_baseline_median: float | None) -> str:
     """NICE-inspired baseline FHR classification."""
     if pd.isna(fhr_baseline_median):
         return "Unknown"
@@ -33,7 +33,7 @@ def classify_baseline_fhr(fhr_baseline_median: float) -> str:
     return "Unknown"
 
 
-def classify_variability(fhr_std: float) -> str:
+def classify_variability(fhr_std: float | None) -> str:
     """NICE-inspired variability proxy classification."""
     if pd.isna(fhr_std):
         return "Unknown"
@@ -46,7 +46,11 @@ def classify_variability(fhr_std: float) -> str:
     return "Unknown"
 
 
-def classify_decelerations(decel_count: float, decel_max_dur_sec: float, accel_count: float) -> str:
+def classify_decelerations(
+    decel_count: float | None,
+    decel_max_dur_sec: float | None,
+    accel_count: float | None,
+) -> str:
     """NICE-inspired deceleration pattern proxy classification."""
     if pd.isna(decel_count):
         decel_count = 0
@@ -103,3 +107,19 @@ def assign_3class_label(row: pd.Series) -> str:
         row.get("accel_count"),
     )
     return combine_nice_classifications(cont, base, var, decel)
+
+
+def assign_3class_labels(df: pd.DataFrame) -> pd.Series:
+    """Batch NICE-inspired assignment using itertuples (faster than DataFrame.apply)."""
+    labels: list[str] = []
+    for row in df.itertuples(index=False):
+        cont = classify_contractions(getattr(row, "uc_peak_rate_per_min", None))
+        base = classify_baseline_fhr(getattr(row, "fhr_baseline_median", None))
+        var = classify_variability(getattr(row, "fhr_std", None))
+        decel = classify_decelerations(
+            getattr(row, "decel_count", None),
+            getattr(row, "decel_max_dur_sec", None),
+            getattr(row, "accel_count", None),
+        )
+        labels.append(combine_nice_classifications(cont, base, var, decel))
+    return pd.Series(labels, index=df.index, name="label_3class")
