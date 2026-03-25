@@ -15,11 +15,17 @@ dependencies = [
   "scikit-learn",
   "matplotlib",
 ]
+
 authors = [
     {name = "Naem Haq"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
+
+[project.optional-dependencies]
+cnn = [
+  "torch",
+]
 
 [tool.setuptools]
 packages = ["src"]

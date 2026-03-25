@@ -1,0 +1,40 @@
+{
+  "random_state": 42,
+  "ratios": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "records_per_split": {
+    "test": 83,
+    "train": 384,
+    "val": 83
+  },
+  "windows_per_split": {
+    "train": 21125,
+    "val": 4448,
+    "test": 4416
+  },
+  "class_distribution_windows": {
+    "Normal": {
+      "test": 668,
+      "train": 2934,
+      "val": 557
+    },
+    "Pathological": {
+      "test": 2550,
+      "train": 12319,
+      "val": 2622
+    },
+    "Suspicious": {
+      "test": 1198,
+      "train": 5872,
+      "val": 1269
+    }
+  },
+  "record_level_dominant_distribution": {
+    "Pathological": 405,
+    "Suspicious": 104,
+    "Normal": 41
+  }
+}
