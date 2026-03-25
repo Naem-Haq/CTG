@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+wfdb
+scikit-learn
+joblib
+matplotlib
+seaborn
+
+[cnn]
+torch

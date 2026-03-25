@@ -13,7 +13,9 @@ dependencies = [
   "scipy",
   "wfdb",
   "scikit-learn",
+  "joblib",
   "matplotlib",
+  "seaborn",
 ]
 
 authors = [
