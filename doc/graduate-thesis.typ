@@ -192,6 +192,38 @@
     
     pagebreak()
   }
+
+  [
+    #set par(justify: true, leading: 1em, spacing: 0.8em)
+
+    = Declaration
+
+    I herewith declare that I have produced this paper without the prohibited assistance of third parties and without making use of aids other than those specified; notions taken over directly or indirectly from other sources have been identified as such. This paper has not previously been presented in identical or similar form to any other Irish or foreign examination board.
+
+    The thesis work was produced under the supervision of #supervisor at #university.
+
+    Naem Haq
+
+    Limerick, #year
+
+    = AI Declaration
+
+    I herewith declare that I have used artificial intelligence to produce my project and/or report in the following ways: I further declare that I have discussed this use of artificial intelligence with my supervisor and received permission to use it.
+
+    Naem Haq
+
+    Limerick, #year
+
+    = Ethics Declaration
+
+    I herewith declare that my project does not involve human participants in any way and that I therefore was not required to submit an ethics application.
+
+    Naem Haq
+
+    Limerick, #year
+  ]
+
+  pagebreak()
   
   // Acknowledgments section (if provided)
   if acknowledgments != none {
@@ -280,7 +312,7 @@
   
   show std.bibliography: set text(12pt)
   show std.bibliography: set par(spacing: 1em, leading: 0.5em)
-  set std.bibliography(title: [Bibliography], style: "ieee")
+  set std.bibliography(title: [Bibliography], style: "apa")
   
   body
   // 使用相对于调用文件的路径
