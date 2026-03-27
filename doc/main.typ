@@ -30,9 +30,11 @@
   ],
   acronyms: (
     "CTG": "Cardiotocography",
+    "CTU-UHB": "CTU-UHB Intrapartum Cardiotocography Database",
     "FHR": "Fetal Heart Rate",
     "UC": "Uterine Contractions",
     "MHR": "Maternal Heart Rate",
+    "ECG": "Electrocardiogram",
     "FIGO": "International Federation of Gynecology and Obstetrics",
     "RF": "Random Forest",
     "CNN": "Convolutional Neural Network",
@@ -41,8 +43,13 @@
     "ROC": "Receiver Operating Characteristic",
     "SHAP": "SHapley Additive exPlanations",
     "LIME": "Local Interpretable Model-agnostic Explanations",
+    "XAI": "Explainable Artificial Intelligence",
     "ML": "Machine Learning",
     "AI": "Artificial Intelligence",
+    "JSON": "JavaScript Object Notation",
+    "CSV": "Comma-Separated Values",
+    "CPU": "Central Processing Unit",
+    "RAM": "Random Access Memory",
   ),
 )
 
@@ -157,7 +164,7 @@ A Cork University Maternity Hospital dataset is part of the broader project cont
 
 The signal preprocessing pipeline is designed to transform raw intrapartum CTG recordings into stable, comparable windows for downstream modelling while preserving clinically meaningful structure. Raw fetal heart rate and uterine contraction signals first undergo physiologic plausibility checks to detect values outside expected bounds, abrupt single-sample spikes, and flat segments suggestive of sensor dropout rather than fetal physiology #cite(<clifford2014_fecg>); #cite(<spilka2013_autoeval>). Quality control flags are generated at sample and window level so low-quality regions can be tracked transparently through later stages. Short gaps are repaired using linear interpolation under a fixed maximum duration rule, whereas longer missing segments are treated as non-recoverable and excluded from model windows to avoid introducing synthetic dynamics. After gap handling, smoothing is applied to reduce high-frequency noise and improve baseline stability before event and variability feature computation. Window acceptance requires minimum valid-sample proportion and continuity criteria, ensuring extracted features represent sustained physiology rather than short artefactual bursts that could distort clinical class boundaries in imbalanced learning settings.
 
-The cleaned streams are then segmented into fixed-length windows aligned to the benchmarking protocol, with each window inheriting weak labels derived from record-level outcomes. To reduce non-clinical amplitude variation across recordings, per-window normalization is applied after filtering and interpolation. Potential maternal heart rate contamination is not modelled with a separate source-separation module in this implementation; instead, its impact is mitigated through plausibility constraints, continuity checks, and exclusion of ambiguous segments. In addition, preprocessing outputs include window quality metadata, dropout duration statistics, and trace-level retention indicators used during split auditing and error analysis. This allows failed or borderline windows to be inspected alongside model predictions, improving diagnostic transparency during development. All preprocessing parameters are fixed, versioned, and reused identically across model families to ensure fair comparison and prevent pipeline-induced performance inflation #cite(<francis2024_scoping>); #cite(<mendis2025_crossdb>). This design supports leakage-aware benchmarking, reproducibility, and interpretable feature extraction grounded in obstetric signal characteristics #cite(<figo2015_intro>); #cite(<chudacek2014_open>). Detailed thresholds, quality rules, and exclusion counts are documented in Appendix @app:b for full auditability and replication.
+The cleaned streams are then segmented into fixed-length windows aligned to the benchmarking protocol, with each window inheriting weak labels derived from record-level outcomes. To reduce non-clinical amplitude variation across recordings, per-window normalization is applied after filtering and interpolation. Potential maternal heart rate contamination is not modelled with a separate source-separation module in this implementation; instead, its impact is mitigated through plausibility constraints, continuity checks, and exclusion of ambiguous segments. In addition, preprocessing outputs include window quality metadata, dropout duration statistics, and trace-level retention indicators used during split auditing and error analysis. This allows failed or borderline windows to be inspected alongside model predictions, improving diagnostic transparency during development. All preprocessing parameters are fixed, versioned, and reused identically across model families to ensure fair comparison and prevent pipeline-induced performance inflation #cite(<francis2024_scoping>); #cite(<mendis2025_crossdb>). This design supports leakage-aware benchmarking, reproducibility, and interpretable feature extraction grounded in obstetric signal characteristics #cite(<figo2015_intro>); #cite(<chudacek2014_open>). Detailed thresholds, quality rules, and exclusion counts are documented in Appendix B for full auditability and replication.
 
 == Feature Extraction
 
@@ -165,7 +172,7 @@ Feature extraction converts cleaned CTG windows into quantitative descriptors us
 
 Beyond event features, time-domain descriptors include central tendency and variability measures such as mean, median, trimmed mean, standard deviation, median absolute deviation, interquartile range, and mean absolute first difference. A long-term variability proxy is calculated as the standard deviation of one-minute mean FHR segments. Frequency and complexity information is added through Welch bandpower in low and higher bands, spectral entropy, permutation entropy, and sample entropy estimated after downsampling for computational efficiency #cite(<hoodbhoy2019_ml>); #cite(<francis2024_scoping>). Uterine contraction features include distribution statistics, peak count, peak rate, prominence, inter-peak interval, and contraction AUC derived from peak-based morphology analysis #cite(<spilka2013_autoeval>).
 
-Quality-aware features (post-processing valid percentage and remaining missingness) are retained to contextualize uncertainty. Peak detection uses a minimum inter-peak distance of 75 seconds and adaptive prominence proportional to signal standard deviation, reducing false contraction detections in noisy traces without manual tuning. The final matrix contains 35 leakage-aware model features and is documented in Appendix @app:c with variable names, definitions, thresholds, and units for reproducible reuse.
+Quality-aware features (post-processing valid percentage and remaining missingness) are retained to contextualize uncertainty. Peak detection uses a minimum inter-peak distance of 75 seconds and adaptive prominence proportional to signal standard deviation, reducing false contraction detections in noisy traces without manual tuning. The final matrix contains 35 leakage-aware model features and is documented in Appendix C with variable names, definitions, thresholds, and units for reproducible reuse.
 
 == Machine Learning Classifiers
 
@@ -200,11 +207,11 @@ Beyond point estimates, evaluation includes split-aware stability summaries (mea
 
 Interpretability analysis is used to explain why the benchmarked models produce specific CTG classifications and to assess whether those explanations are clinically plausible. For the Random Forest baseline, global feature importance is extracted directly from the fitted ensemble and summarized at both individual-feature and clinical-domain levels. This enables comparison of contribution from deceleration, contraction, variability, baseline, frequency, and complexity descriptors, rather than relying only on aggregate accuracy #cite(<feng2023_shap>); #cite(<francis2024_scoping>). Interpretation is coupled with confusion-matrix error analysis to identify where influential features align with frequent misclassification pathways, especially around Suspicious-Pathological boundaries.
 
-For the 1D-CNN, interpretability is assessed through comparative behaviour rather than full attribution maps in this phase, with emphasis on class-wise recall patterns and failure cases relative to the feature-based baseline. This keeps conclusions grounded in implemented artefacts while avoiding over-claiming explanation quality. The analysis therefore prioritizes reproducible, auditable transparency: ranked feature lists, domain-importance summaries, and error cases. Detailed importance tables, domain mappings, and plots are provided in Appendix @app:e for review.
+For the 1D-CNN, interpretability is assessed through comparative behaviour rather than full attribution maps in this phase, with emphasis on class-wise recall patterns and failure cases relative to the feature-based baseline. This keeps conclusions grounded in implemented artefacts while avoiding over-claiming explanation quality. The analysis therefore prioritizes reproducible, auditable transparency: ranked feature lists, domain-importance summaries, and error cases. Detailed importance tables, domain mappings, and plots are provided in Appendix E for review.
 
 == Implementation Details
 
-Implementation uses Python with a modular project layout under `src/` (preprocessing, segmentation, feature extraction, CNN, utilities) plus notebook blocks for staged experiments and reporting. Core dependencies are NumPy, pandas, SciPy, scikit-learn, WFDB, matplotlib, and PyTorch for the 1D-CNN pathway. Reproducibility controls include fixed random seeds, record-level split manifests, serialized reports (JSON/CSV), and versioned output artefacts for metrics, confusion matrices, and feature importance summaries. The workflow runs end-to-end from raw CTG records to benchmark outputs, with shared preprocessing definitions reused across RF and CNN pipelines to avoid implementation drift. Execution artefacts include split summaries, checkpoints, and history plots for traceability. Development is tracked with Git, and configuration choices are documented to support exact reruns and independent audit of results #cite(<chudacek2014_open>); #cite(<francis2024_scoping>). Environment and dependency details are listed in Appendix @app:a.
+Implementation uses Python with a modular project layout under `src/` (preprocessing, segmentation, feature extraction, CNN, utilities) plus notebook blocks for staged experiments and reporting. Core dependencies are NumPy, pandas, SciPy, scikit-learn, WFDB, matplotlib, and PyTorch for the 1D-CNN pathway. Reproducibility controls include fixed random seeds, record-level split manifests, serialized reports (JSON/CSV), and versioned output artefacts for metrics, confusion matrices, and feature importance summaries. The workflow runs end-to-end from raw CTG records to benchmark outputs, with shared preprocessing definitions reused across RF and CNN pipelines to avoid implementation drift. Execution artefacts include split summaries, checkpoints, and history plots for traceability. Development is tracked with Git, and configuration choices are documented to support exact reruns and independent audit of results #cite(<chudacek2014_open>); #cite(<francis2024_scoping>). Environment and dependency details are listed in Appendix A.
 
 = Results
 
@@ -241,7 +248,7 @@ Record-level aggregation further separates the models. CNN accuracy drops to 48.
 
 Split composition and training dynamics provide further context. RF uses 21,153 training windows and 8,836 grouped test windows (385 and 165 records respectively), while CNN uses 21,125/4,448/4,416 train/validation/test windows with 384/83/83 records. CNN early stopping selected best epoch 8 with best validation macro-F1 around 0.564, indicating that even optimized validation checkpoints did not close the gap to RF. Window-level CNN loss remained substantially higher than RF surrogate error rates implied by confusion structure, and this divergence persisted under identical preprocessing and record grouping constraints.
 
-Efficiency evidence is made explicit in Table @tb:eff_explicit, with raw values archived in Appendix @app:d. The deployed RF artifact is substantially larger (18,396,698 bytes) than the CNN checkpoint (155,811 bytes), while model structure shows the opposite pattern in operational complexity: RF stores 250 trees with 207,860 total nodes (mean depth 12), whereas the CNN contains 36,774 trainable parameters. In other words, RF delivers stronger predictive performance at the cost of larger on-disk footprint, while CNN is compact on disk but underperforms in current discrimination metrics. These trade-offs are directly relevant for deployment planning where storage, update distribution, and runtime behavior must be balanced.
+Efficiency evidence is made explicit in Table @tb:eff_explicit, with raw values archived in Appendix D. The deployed RF artifact is substantially larger (18,396,698 bytes) than the CNN checkpoint (155,811 bytes), while model structure shows the opposite pattern in operational complexity: RF stores 250 trees with 207,860 total nodes (mean depth 12), whereas the CNN contains 36,774 trainable parameters. In other words, RF delivers stronger predictive performance at the cost of larger on-disk footprint, while CNN is compact on disk but underperforms in current discrimination metrics. These trade-offs are directly relevant for deployment planning where storage, update distribution, and runtime behavior must be balanced.
 
 #figure(
   table(
@@ -303,7 +310,7 @@ Additional plots contextualize data and model dynamics. The class-distribution p
 
 For deployment-oriented analysis, Figure @fig:alerts provides temporal context beyond static confusion matrices. Causal smoothing reduces transition frequency from 8.22 to 4.74 transitions per hour, improving alert stability, but also alters false-alert behaviour and lowers raw classification agreement in the smoothed stream. These results highlight a key implementation trade-off: temporal consistency can improve bedside usability while shifting metric balance.
 
-Together, the visualization suite provides complementary evidence for model selection by showing where errors occur, how they evolve over time, and how thresholding/smoothing policies affect practical decision support. Extended plots, per-class distribution panels, CNN training curves, and alert diagnostics are provided in Appendix @app:e for reproducibility and independent review #cite(<francis2024_scoping>); #cite(<mendis2025_crossdb>). Figures in this chapter are generated directly from versioned output artefacts to ensure exact reproducibility between narrative interpretation, tables, and plotted evidence across review processes. Separate training-curve visualization for CNN shows rapid early validation plateau and later overfitting tendency, supporting early-stopping selection and explaining limited generalization gains. Combined with RF threshold and feature-importance figures, these visuals provide a compact but complete evidence chain from data distribution to deployment policy for reviewers.
+Together, the visualization suite provides complementary evidence for model selection by showing where errors occur, how they evolve over time, and how thresholding/smoothing policies affect practical decision support. Extended plots, per-class distribution panels, CNN training curves, and alert diagnostics are provided in Appendix E for reproducibility and independent review #cite(<francis2024_scoping>); #cite(<mendis2025_crossdb>). Figures in this chapter are generated directly from versioned output artefacts to ensure exact reproducibility between narrative interpretation, tables, and plotted evidence across review processes. Separate training-curve visualization for CNN shows rapid early validation plateau and later overfitting tendency, supporting early-stopping selection and explaining limited generalization gains. Combined with RF threshold and feature-importance figures, these visuals provide a compact but complete evidence chain from data distribution to deployment policy for reviewers.
 
 = Discussion
 
@@ -353,7 +360,7 @@ It also extends prior work by integrating efficiency and alert-behaviour conside
 
 Accordingly, the contribution to state-of-the-art is methodological as well as empirical: it demonstrates a reproducible evaluation template reusable across future cohorts and model updates, enabling clearer longitudinal comparisons than isolated single-metric reports. This framing supports fairer interpretation across studies using different data scales, label granularity, and operational constraints in maternity settings.
 
-It also encourages explicit reporting of split policy, threshold policy, and post-processing policy as benchmark variables, which improves reproducibility and cross-study comparability for clinically oriented decision-support research. A compact cross-study matrix is provided in Appendix @app:g.
+It also encourages explicit reporting of split policy, threshold policy, and post-processing policy as benchmark variables, which improves reproducibility and cross-study comparability for clinically oriented decision-support research. A compact cross-study matrix is provided in Appendix G.
 
 == Trustworthy AI Considerations
 
@@ -405,7 +412,7 @@ Interpretability outputs were clinically plausible: contraction and deceleration
 
 Overall, the findings support a staged strategy: deploy interpretable tabular models first, then revisit deep models when stronger event-level labels, larger cohorts, and cross-database validation are available #cite(<francis2024_scoping>); #cite(<mendis2025_crossdb>); #cite(<chiou2025_npj>).
 
-Reproducibility infrastructure strengthened confidence in these conclusions: fixed seeds, preserved split manifests, and exported reports enabled direct auditing across notebooks and artefacts (Appendix @app:a to Appendix @app:f). Distinguishing robust performance from optimism is essential in maternity applications where missed compromise and unnecessary escalation can cause harm.
+Reproducibility infrastructure strengthened confidence in these conclusions: fixed seeds, preserved split manifests, and exported reports enabled direct auditing across notebooks and artefacts (Appendix A to Appendix F). Distinguishing robust performance from optimism is essential in maternity applications where missed compromise and unnecessary escalation can cause harm.
 
 == Contributions
 
@@ -429,7 +436,7 @@ Future research should prioritize external validity, richer supervision, and pro
 
 A parallel priority is multimodal integration. Incorporating maternal covariates, intervention context, and complementary fetal signals may improve ambiguity handling in Suspicious cases and reduce over-escalation. Finally, prospective clinical studies are required to assess bedside usability, alert fatigue, response-time effects, and governance fit under real operating constraints. This should include human factors analysis, threshold review workflows, and drift monitoring plans so that technical gains translate into safe and sustainable clinical adoption #cite(<chiou2025_npj>); #cite(<mendis2025_crossdb>).
 
-Future studies should include repeated grouped resampling with confidence intervals and significance testing to better quantify ranking uncertainty across models. Adaptive threshold governance should also be evaluated, with periodic recalibration against monitored outcomes as data distributions evolve over time. Prospective implementation studies should assess workflow fit, alert communication design, and governance burden during use. Review boards should be involved from protocol design to deployment audit; a practical implementation checklist is included in Appendix @app:h.
+Future studies should include repeated grouped resampling with confidence intervals and significance testing to better quantify ranking uncertainty across models. Adaptive threshold governance should also be evaluated, with periodic recalibration against monitored outcomes as data distributions evolve over time. Prospective implementation studies should assess workflow fit, alert communication design, and governance burden during use. Review boards should be involved from protocol design to deployment audit; a practical implementation checklist is included in Appendix H.
 
 == Closing Statement
 
@@ -437,9 +444,11 @@ Cardiotocography remains clinically indispensable yet methodologically demanding
 
 The resulting baseline is not presented as final truth, but as a foundation for iterative improvement. That foundation now supports the next phase: broader validation, stronger labels, multimodal enrichment, and prospective clinical integration. In that sense, the contribution is dual-purpose: immediate guidance for decision-support development and a framework for future research. This is the pathway from benchmark performance to impact in intrapartum care.
 
-= Appendices
+#set heading(numbering: none)
 
-== Appendix A <app:a>
+#heading(level: 1, numbering: none)[Appendices]
+
+#heading(level: 2, numbering: none)[Appendix A] <app:a>
 
 == Runtime Environment
 
@@ -476,7 +485,7 @@ python -m src.feature_extraction
 python -m src.cnn
 ```
 
-== Appendix B <app:b>
+#heading(level: 2, numbering: none)[Appendix B] <app:b>
 
 == Preprocessing Configuration (Extract)
 
@@ -505,7 +514,7 @@ class PreprocessConfig:
 
 Failed record IDs: `1058`, `1164`, `1173`, `1198`, `1361`, `1431`, `2006`, `2013`, `2025`, `2030`.
 
-== Appendix C <app:c>
+#heading(level: 2, numbering: none)[Appendix C] <app:c>
 
 == Feature Configuration (Extract)
 
@@ -538,7 +547,7 @@ class FeatureConfig:
 
 Final matrix dimensions: 29,989 windows × 49 columns (metadata + 35 model features).
 
-== Appendix D <app:d>
+#heading(level: 2, numbering: none)[Appendix D] <app:d>
 
 == Random Forest Final Configuration
 
@@ -586,7 +595,7 @@ Primary artefacts: `outputs/models/rf_3class_report.json`, `outputs/models/cnn_3
   [CNN structural complexity], [36,774 trainable parameters], [small neural model capacity],
 )
 
-== Appendix E <app:e>
+#heading(level: 2, numbering: none)[Appendix E] <app:e>
 
 == Extended Figures
 
@@ -612,7 +621,7 @@ Primary artefacts: `outputs/models/rf_3class_report.json`, `outputs/models/cnn_3
 
 Additional diagnostic outputs are stored under `outputs/models/` and include split summaries, confusion matrices, and alert timeline artefacts.
 
-== Appendix F <app:f>
+#heading(level: 2, numbering: none)[Appendix F] <app:f>
 
 == Metric Definitions
 
@@ -636,7 +645,7 @@ Balanced Accuracy = mean(class-wise recall)
 
 This dissertation reports fixed-split benchmark effects with class-wise diagnostics and avoids over-claiming inferential significance from single-run comparisons; repeated-resampling tests are planned in future work.
 
-== Appendix G <app:g>
+#heading(level: 2, numbering: none)[Appendix G] <app:g>
 
 == State-of-the-Art Comparison Matrix (Summary)
 
@@ -657,7 +666,7 @@ This dissertation reports fixed-split benchmark effects with class-wise diagnost
 - drift-monitoring plan defined
 - alert burden metrics reviewed pre-deployment
 
-== Appendix H <app:h>
+#heading(level: 2, numbering: none)[Appendix H] <app:h>
 
 == Prospective Validation Roadmap
 
