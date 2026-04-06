@@ -208,7 +208,7 @@
 
     = AI Declaration
 
-    I herewith declare that I have used artificial intelligence to produce my project and/or report in the following ways: I further declare that I have discussed this use of artificial intelligence with my supervisor and received permission to use it.
+    I herewith declare that I did not use artificial intelligence to produce this project and/or report, and that artificial intelligence use was not permitted for this submission.
 
     Naem Haq
 
