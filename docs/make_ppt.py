@@ -2,6 +2,9 @@ from pathlib import Path
 
 from PIL import Image
 from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 
@@ -14,14 +17,81 @@ IMAGES = {
     'alerts': ROOT / 'outputs/models/blockF_alert_timeline.png',
 }
 
+PALETTE = {
+    'bg': RGBColor(11, 16, 32),
+    'text': RGBColor(236, 241, 255),
+    'muted': RGBColor(185, 196, 226),
+    'accent': RGBColor(62, 183, 219),
+    'accent_2': RGBColor(51, 109, 217),
+}
+
+
+def _no_line(shape):
+    shape.line.fill.background()
+
+
+def _send_to_back(shape):
+    sp_tree = shape._element.getparent()
+    el = shape._element
+    sp_tree.remove(el)
+    sp_tree.insert(2, el)
+
+
+def _style_paragraph(paragraph, size, color, bold=False):
+    paragraph.font.size = Pt(size)
+    paragraph.font.color.rgb = color
+    paragraph.font.bold = bold
+    paragraph.font.name = 'Calibri'
+    for run in paragraph.runs:
+        run.font.size = Pt(size)
+        run.font.color.rgb = color
+        run.font.bold = bold
+        run.font.name = 'Calibri'
+
+
+def add_background_art(slide):
+    bg = slide.background.fill
+    bg.solid()
+    bg.fore_color.rgb = PALETTE['bg']
+
+    glow_left = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(-1.2), Inches(-1.0), Inches(4.0), Inches(4.0))
+    glow_left.fill.solid()
+    glow_left.fill.fore_color.rgb = PALETTE['accent_2']
+    glow_left.fill.transparency = 72
+    _no_line(glow_left)
+    _send_to_back(glow_left)
+
+    glow_right = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(8.5), Inches(4.8), Inches(4.0), Inches(4.0))
+    glow_right.fill.solid()
+    glow_right.fill.fore_color.rgb = PALETTE['accent']
+    glow_right.fill.transparency = 80
+    _no_line(glow_right)
+    _send_to_back(glow_right)
+
+    top_band = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.33), Inches(0.12))
+    top_band.fill.solid()
+    top_band.fill.fore_color.rgb = PALETTE['accent']
+    _no_line(top_band)
+    _send_to_back(top_band)
+
+
+def style_text_frame(tf, base_size=20, color=None):
+    color = color or PALETTE['text']
+    for p in tf.paragraphs:
+        p.font.size = Pt(base_size)
+        p.font.color.rgb = color
+        p.font.name = 'Calibri'
+
 
 def set_title(slide, title):
     slide.shapes.title.text = title
-    slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(34)
+    tf = slide.shapes.title.text_frame
+    _style_paragraph(tf.paragraphs[0], 34, PALETTE['text'], bold=True)
 
 
 def add_bullets(prs, title, bullets, subtitle=None):
     slide = prs.slides.add_slide(prs.slide_layouts[1])
+    add_background_art(slide)
     set_title(slide, title)
     tf = slide.shapes.placeholders[1].text_frame
     tf.clear()
@@ -29,20 +99,26 @@ def add_bullets(prs, title, bullets, subtitle=None):
     if subtitle:
         p = tf.paragraphs[0]
         p.text = subtitle
-        p.font.bold = True
-        p.font.size = Pt(20)
+        _style_paragraph(p, 20, PALETTE['accent'], bold=True)
 
     for i, b in enumerate(bullets):
         p = tf.add_paragraph() if (subtitle or i > 0) else tf.paragraphs[0]
         p.text = b
         p.level = 0
-        p.font.size = Pt(20)
+        _style_paragraph(p, 20, PALETTE['text'])
+
+    # subtle emphasis line
+    line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.9), Inches(1.35), Inches(2.2), Inches(0.05))
+    line.fill.solid()
+    line.fill.fore_color.rgb = PALETTE['accent']
+    _no_line(line)
 
     return slide
 
 
 def add_two_images(prs, title, left_path, right_path, caption_left, caption_right):
     slide = prs.slides.add_slide(prs.slide_layouts[5])
+    add_background_art(slide)
     set_title(slide, title)
 
     left_x, right_x = Inches(0.5), Inches(5.1)
@@ -57,17 +133,29 @@ def add_two_images(prs, title, left_path, right_path, caption_left, caption_righ
         disp_h = h * ratio
         y = top_img + (max_h - disp_h) / 2
         slide.shapes.add_picture(str(path), x, y, width=disp_w, height=disp_h)
+        frame = slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE,
+            x - Inches(0.08),
+            y - Inches(0.08),
+            disp_w + Inches(0.16),
+            disp_h + Inches(0.16),
+        )
+        frame.fill.background()
+        frame.line.color.rgb = PALETTE['accent']
+        frame.line.width = Pt(1.8)
 
     place(left_path, left_x)
     place(right_path, right_x)
 
     tb1 = slide.shapes.add_textbox(left_x, Inches(6.2), max_w, Inches(0.5)).text_frame
     tb1.text = caption_left
-    tb1.paragraphs[0].font.size = Pt(14)
+    _style_paragraph(tb1.paragraphs[0], 14, PALETTE['muted'])
+    tb1.paragraphs[0].alignment = PP_ALIGN.CENTER
 
     tb2 = slide.shapes.add_textbox(right_x, Inches(6.2), max_w, Inches(0.5)).text_frame
     tb2.text = caption_right
-    tb2.paragraphs[0].font.size = Pt(14)
+    _style_paragraph(tb2.paragraphs[0], 14, PALETTE['muted'])
+    tb2.paragraphs[0].alignment = PP_ALIGN.CENTER
 
     return slide
 
@@ -82,21 +170,31 @@ def build_presentation():
     prs = Presentation()
 
     cover = prs.slides.add_slide(prs.slide_layouts[0])
+    add_background_art(cover)
     cover.shapes.title.text = 'Benchmarking ML Classifiers for CTG\nFetal Heart Rate Pattern Detection'
-    cover.shapes.title.text_frame.paragraphs[0].font.size = Pt(36)
+    _style_paragraph(cover.shapes.title.text_frame.paragraphs[0], 40, PALETTE['text'], bold=True)
     cover.placeholders[1].text = (
         'Naem Haq\n'
         'FYP Dissertation Presentation\n'
         'Residency 4 context: INFANT Research Centre (UCC)'
     )
     for p in cover.placeholders[1].text_frame.paragraphs:
-        p.font.size = Pt(18)
+        _style_paragraph(p, 18, PALETTE['muted'])
+
+    badge = cover.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.9), Inches(5.95), Inches(4.2), Inches(0.55))
+    badge.fill.solid()
+    badge.fill.fore_color.rgb = PALETTE['accent_2']
+    badge.fill.transparency = 20
+    _no_line(badge)
+    badge_tf = badge.text_frame
+    badge_tf.text = 'CTU-UHB • RF vs 1D-CNN • Reproducible Benchmark'
+    badge_tf.paragraphs[0].font.size = Pt(12)
+    badge_tf.paragraphs[0].font.color.rgb = PALETTE['text']
+    badge_tf.paragraphs[0].font.name = 'Calibri'
+    badge_tf.paragraphs[0].alignment = PP_ALIGN.CENTER
     set_notes(
         cover,
-        'Good [morning/afternoon]. I am Naem Haq, and this presentation summarizes my FYP benchmarking '
-        'study on machine-learning classifiers for CTG fetal heart rate pattern detection. The work is framed '
-        'by my Residency 4 context at INFANT Research Centre, and focuses on fair, reproducible model '
-        'comparison for decision-support relevance.',
+        'Hi, I’m Naem Haq. This final year project benchmarks machine-learning classifiers for fetal heart rate pattern detection in Cardiotocography, CTG for short. The work was shaped during my 4th Residency at INFANT Research Centre, where interpretation variability in labour monitoring highlighted the need for controlled, reproducible evaluation.',
     )
 
     s2 = add_bullets(
