@@ -12,6 +12,8 @@
   degree-type: [Bachelor],
   degree-department: [Department of Computer Science and Information Systems],
   location: [Limerick, Ireland],
+  word-count: none,
+  word-count-with-citations: none,
   abstract: none,
   keywords: none,
   acknowledgments: none,
@@ -173,7 +175,19 @@
         let total-pages = counter(page).final().first()
         total-pages
       }
-    ]
+    ],
+    [
+      WORD COUNT EXCLUDING REFERENCES AND APPENDICES:
+    ],
+    [
+      #word-count
+    ],
+    [
+      WORD COUNT INCLUDING IN-TEXT CITATION TOKENS:
+    ],
+    [
+      #word-count-with-citations
+    ],
   )
   pagebreak()
 

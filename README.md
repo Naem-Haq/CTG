@@ -1,212 +1,141 @@
-# AI4Life: Cardiotocography Decision Support System
+# CTG Benchmarking: Random Forest vs 1D-CNN for Fetal Heart Rate Pattern Detection
 
-A biomedical signal processing and machine learning project to develop an **AI-based decision support system** for monitoring fetal wellbeing during labour using Cardiotocography (CTG) data.
+This repository contains the implementation and outputs for an FYP benchmarking study on machine-learning classifiers for cardiotocography (CTG) fetal heart rate pattern detection.
 
-## 📋 Overview
+The study is framed as a controlled, reproducible benchmark (not a production real-time system), comparing:
 
-**Cardiotocography (CTG)** measures fetal and maternal heart rate and uterine contractions during labour. CTG interpretation is subjective and controversial, with significant inter-observer variability. This project applies machine learning to create a reliable, interpretable decision support tool to assist clinicians in identifying fetal distress and optimizing clinical interventions.
+- Random Forest (feature-based baseline)
+- 1D-CNN (raw-signal representation model)
 
-### Key Objective
-Develop a **real-time decision support system** that:
-- Analyzes fetal heart rate (FHR), maternal heart rate (MHR), and uterine contraction (UC) signals
-- Automatically identifies clinically significant changes indicating potential fetal distress
-- Provides interpretable, temporal alerts to support clinical decision-making
-- Reduces unnecessary interventions while improving maternal and neonatal outcomes
+under shared preprocessing, leakage-aware grouped splitting, and common evaluation criteria.
 
----
+## Overview
 
-## 🎯 Project Goals
+Cardiotocography (CTG) is widely used for intrapartum fetal monitoring, but interpretation can be subjective and variable.
+This project benchmarks model behavior under controlled conditions to support transparent decision-support development.
 
-✅ Extract meaningful physiological features from raw CTG signals  
-✅ Build interpretable machine learning models (Random Forest baseline, CNN advanced)  
-✅ Validate model performance on CTU-CHB database (552 recordings)  
-✅ Implement post-processing for clinical alert generation  
-✅ Document limitations and clinical implementation requirements  
+The benchmarking motivation was shaped during Residency 4 context at the INFANT Research Centre.
 
----
+## Scope and Claim Boundary
 
-## 📊 Dataset
+- Dataset: CTU-UHB Intrapartum Cardiotocography Database (PhysioNet)
+- Current benchmark scope: within-cohort evaluation
+- Label regime: weakly supervised windows derived from record-level outcomes
+- Evaluation framing: fixed-split comparative evidence
+- Not claimed in this dissertation run: repeated grouped resampling inferential statistics
 
-**CTU-CHB Intrapartum Cardiotocography Database** (PhysioNet)
-- **552 recordings** from Czech University Hospital Brno
-- **~6500 hours** of continuous monitoring
-- **Signals:** Fetal Heart Rate (FHR), Uterine Contractions (UC), Maternal Heart Rate (MHR)
-- **Sampling rate:** 4 Hz
-- **Duration:** ~90 minutes per recording
-- **Labels:** Normal vs. Pathological classification + clinical outcomes (pH, Apgar scores)
+## Main Result (Current Benchmark Cycle)
 
-[Download database](https://physionet.org/content/ctu-chb-intrapartum-cardiotocography-database-1.0.0/)
+On held-out windows:
 
----
+- Random Forest: 95.55% accuracy, macro-F1 0.945
+- 1D-CNN: 65.31% accuracy, macro-F1 0.584
 
-## 🏗️ Project Structure
+At record level (CNN), performance drops to:
 
-```
+- 48.19% accuracy, macro-F1 0.383
+
+Under this data regime, Random Forest is the stronger current transparent baseline.
+
+## Repository Structure
+
+```text
 CTG/
-├── notebooks/
-│   ├── 01-BlockA-DataDiscovery.ipynb         # Data validation & summary
-│   ├── 02-BlockB-Preprocessing.ipynb         # Signal cleaning pipeline
-│   ├── 03-BlockC-Segmentation.ipynb          # Window-based segmentation
-│   ├── 04-BlockD-FeatureEngineering.ipynb    # Clinical feature extraction
-│   ├── 05-BlockE-RandomForest.ipynb          # Primary 3-class RF classifier
-│   ├── 05-BlockE-BinaryBaseline-RandomForest.ipynb  # Binary baseline RF
-│   ├── 06-BlockF-PostProcessing.ipynb        # Alert generation
-│   └── 07-BlockG-CNN.ipynb                   # Advanced CNN model (optional)
-├── src/
-│   ├── preprocessing.py                       # Reusable preprocessing functions
-│   ├── segmentation.py                        # Segmentation utilities
-│   ├── feature_extraction.py                  # Feature computation
-│   └── utils.py                               # Common utilities
-├── outputs/
-│   ├── dataset_summary.csv                    # Block A deliverable
-│   ├── dataset_statistics.json                # Block A statistics
-│   └── models/                                # Trained models (RF, CNN)
 ├── data/
-│   └── ctu-chb-intrapartum-cardiotocography-database-1.0.0/
-│       └── (552 .hea/.dat files)
-├── plan.md                                    # Detailed project plan
-└── README.md                                  # This file
+├── src/
+│   ├── preprocessing.py
+│   ├── segmentation.py
+│   ├── feature_extraction.py
+│   ├── cnn.py
+│   └── utils.py
+├── notebooks/
+│   ├── 01-BlockA-DataDiscovery.ipynb
+│   ├── 02-BlockB-Preprocessing.ipynb
+│   ├── 03-BlockC-Segmentation.ipynb
+│   ├── 04-BlockD-FeatureEngineering.ipynb
+│   ├── 05-BlockE-RandomForest.ipynb
+│   ├── 06-BlockF-PostProcessing.ipynb
+│   └── 07-BlockG-CNN.ipynb
+├── outputs/
+│   └── models/
+├── doc/
+│   ├── thesis.typ
+│   └── thesis.pdf
+├── pyproject.toml
+└── README.md
 ```
 
----
+## Environment
 
-## 🚀 Implementation Blocks
+Primary runtime used in dissertation runs (see thesis appendix for full table):
 
-### **Block A: Data Discovery & Validation** ✅ COMPLETE
-Scan all 552 recordings to understand:
-- Signal availability (FHR, UC, MHR)
-- Recording durations and sampling rates
-- Outcome label distribution (Normal vs. Pathological)
-- Data quality metrics (missing data, outliers)
+- Python 3.10.19
+- Linux
+- CPU execution
+- Core libs: numpy, pandas, scipy, scikit-learn, wfdb, matplotlib, seaborn, joblib
+- CNN path: torch
 
-**Output:** `dataset_summary.csv`, `dataset_statistics.json`
+## Installation
 
-### **Block B: Preprocessing Pipeline**
-Clean signals by:
-- Detecting and interpolating signal dropouts
-- Removing physiological outliers (FHR outside [80, 240] bpm)
-- Applying Gaussian smoothing
-- Per-recording z-score normalization
-
-**Output:** Cleaned FHR and UC signals
-
-### **Block C: Segmentation Strategy**
-Convert 90-minute recordings into fixed-length windows:
-- Window size: 5 minutes (configurable)
-- Non-overlapping segments
-- Label assignment: All segments inherit global recording label
-
-**Output:** Segmentation manifest CSV
-
-### **Block D: Feature Engineering**
-Extract 50+ clinical features:
-- **Baseline:** Mean FHR, Median FHR
-- **Variability:** Short-term/long-term variability, std dev
-- **Decelerations:** Count, depth, duration, recovery slope
-- **Accelerations:** Count, amplitude, rise time
-- **Frequency-domain:** Peak frequencies, spectral power
-- **Entropy:** Sample entropy, complexity measures
-- **UC Features:** Amplitude, frequency, baseline tonus
-
-**Output:** Feature matrix (N_segments × N_features)
-
-### **Block E: 3-Class Random Forest**
-Train explainable classifier:
-- NICE-based 3-class target (Normal, Suspicious, Pathological)
-- Grouped 70/30 train/test split by `record_id` (no leakage)
-- Metrics: class-wise precision/recall/F1, confusion matrix, threshold trade-offs
-- Feature importance ranking
-
-**Output:** Trained RF model, performance report, ROC curve
-
-### **Block F: Post-Processing & Temporal Smoothing**
-Generate clinician-friendly alerts:
-- Recreate 3-class NICE pseudo-ground-truth labels from feature matrix
-- Evaluate alerts on grouped holdout records (same no-leakage split policy as Block E)
-- Apply causal temporal smoothing (trailing majority vote per record)
-- Report clinical alert metrics (false alerts/hour, transition rate, escalation rate)
-
-**Output:** Real-time alert timeline, visualization
-
-### **Block G: Advanced Model – CNN** (Optional)
-Learn features directly from raw signals:
-- 1D CNN on segmented FHR + UC
-- Compare CNN vs. RF (accuracy, interpretability, speed)
-- Visualize learned patterns
-
-**Output:** CNN model, side-by-side comparison
-
----
-
-## 📦 Installation & Setup
-
-### Requirements
-- Python 3.8+
-- NumPy, Pandas, Scikit-learn, SciPy, Matplotlib
-- PhysioNet WFDB library
-- TensorFlow/Keras (optional, for CNN)
-
-### Quick Start
 ```bash
-# Clone repository
 git clone https://github.com/Naem-Haq/CTG.git
 cd CTG
-
-# Install dependencies
 pip install -e .
-
-# Download dataset
-# Visit: https://physionet.org/content/ctu-chb-intrapartum-cardiotocography-database-1.0.0/
-# Extract to: data/ctu-chb-intrapartum-cardiotocography-database-1.0.0/
-
-# Run Block A (data discovery)
-jupyter notebook notebooks/01-BlockA-DataDiscovery.ipynb
 ```
 
----
+Optional CNN dependency:
 
-## 📈 Usage
+```bash
+pip install torch
+```
 
-1. **Data Validation:** Run Block A to generate dataset summary
-2. **Preprocessing:** Run Block B to clean signals
-3. **Segmentation:** Run Block C to create training windows
-4. **Features:** Run Block D to compute feature matrix
-5. **Training:** Run Block E to train Random Forest
-6. **Deployment:** Run Block F to generate real-time alerts
+## Reproducible Run Sequence
 
----
+Core pipeline modules:
 
-## ⚠️ Important Assumptions
+```bash
+python -m src.preprocessing
+python -m src.segmentation
+python -m src.feature_extraction
+```
 
-- **Weak Labels:** Outcome labels are recording-level. Some "normal" segments may contain transient stress.
-- **Dataset Bias:** Czech cohort only; may not generalize globally.
-- **Class Imbalance:** Majority of cases are normal; pathological cases are minority.
-- **No Time-Localization:** Adverse events are not time-stamped within recordings.
+Notebook execution for benchmark artifacts:
 
-**See `plan.md` for full methodology details.**
+```bash
+python -m jupyter nbconvert --to notebook --execute notebooks/05-BlockE-RandomForest.ipynb --inplace
+python -m jupyter nbconvert --to notebook --execute notebooks/06-BlockF-PostProcessing.ipynb --inplace
+python -m jupyter nbconvert --to notebook --execute notebooks/07-BlockG-CNN.ipynb --inplace
+```
 
----
+Compile dissertation PDF:
 
-## 👤 Contact
+```bash
+typst compile --root /absolute/path/to/CTG doc/thesis.typ doc/thesis.pdf
+```
 
-**Supervisor:** Professor Liam Marnane  
-**Email:** l.marnane@ucc.ie  
-**Institution:** University College Cork, School of Engineering
+## Key Artifacts
 
----
+Generated under `outputs/models/` (examples):
 
-## 📚 References
+- `rf_3class_report.json`
+- `cnn_3class_report.json`
+- `cnn_vs_rf_comparison.json`
+- `rf_3class_confusion_matrix.png`
+- `cnn_3class_confusion_matrix.png`
+- `rf_3class_feature_importance.png`
+- `blockF_alert_timeline.png`
 
-- PhysioNet CTU-CHB Database: https://physionet.org/content/ctu-chb-intrapartum-cardiotocography-database-1.0.0/
-- FIGO CTG Guidelines: International Federation of Gynecology and Obstetrics
-- Signal Processing in Biomedicine: Classic textbooks on biomedical signal processing
+## Limitations and Future Work
 
----
+Current findings are bounded to CTU-UHB and this weak-label setting.
+Priority extensions:
 
-## 📝 License
+- repeated grouped resampling and stronger uncertainty analysis
+- external validation across broader datasets
+- prospective clinician-facing translation workflows
 
-This project is developed for academic research purposes.
+## References
 
----
-
-**Last Updated:** January 27, 2026
+- CTU-UHB Database (PhysioNet): https://physionet.org/content/ctu-uhb-ctgdb/
+- Thesis source: `doc/thesis.typ`
+- Thesis PDF: `doc/thesis.pdf`
